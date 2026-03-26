@@ -113,9 +113,13 @@ def minibatch_parse(sentences, model, batch_size):
         transitions = model.predict(minibatch)
         for parse, transition in zip(minibatch, transitions):
             parse.parse_step(transition)
+        done = []
         for i, parse in enumerate(minibatch):
             if len(parse.buffer) == 0 and len(parse.stack) == 1:
-                unfinished_parses.pop(i)
+                done.append(i)
+        done.sort(reverse=True)
+        for i in done:
+            unfinished_parses.pop(i)
     dependencies = [partial_parse.dependencies for partial_parse in partial_parses]
 
     ### YOUR CODE HERE (~8-10 Lines)

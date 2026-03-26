@@ -73,9 +73,21 @@ class ParserModel(nn.Module):
         ### 
         ### See the PDF for hints.
 
+        self.embed_to_hidden_weight = torch.empty(self.hidden_size, (self.n_features*self.embed_size))
+        self.embed_to_hidden_weight = nn.init.xavier_uniform_(self.embed_to_hidden_weight)
+        self.embed_to_hidden_weight = nn.Parameter(self.embed_to_hidden_weight)
 
-
-
+        self.embed_to_hidden_bias = torch.empty(self.hidden_size)
+        self.embed_to_hidden_bias = nn.init.uniform_(self.embed_to_hidden_bias)
+        self.embed_to_hidden_bias = nn.Parameter(self.embed_to_hidden_bias)
+        
+        self.dropout = nn.Dropout(0.2)
+        
+        self.hidden_to_logits_weight = torch.empty(self.n_classes, self.hidden_size)
+        self.hidden_to_logits_bias = torch.empty(self.n_classes)
+        self.hidden_to_logits_weight = nn.init.xavier_uniform_(self.hidden_to_logits_weight)
+        self.hidden_to_logits_bias = nn.init.uniform_(self.hidden_to_logits_bias)
+        
         ### END YOUR CODE
 
     def embedding_lookup(self, w):
@@ -106,11 +118,13 @@ class ParserModel(nn.Module):
         ###     Gather: https://pytorch.org/docs/stable/torch.html#torch.gather
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
         ###     Flatten: https://pytorch.org/docs/stable/generated/torch.flatten.html
-
-
-
+        
+        # For a single batch with feature_tensor f
+        # embeddings = torch.index_select(self.embeddings, 0, wi)
+        word_embeddings = self.embeddings[w]
+        word_embeddings = torch.flatten(word_embeddings, start_dim=1)
         ### END YOUR CODE
-        return x
+        return word_embeddings
 
 
     def forward(self, w):
@@ -143,8 +157,11 @@ class ParserModel(nn.Module):
         ### Please see the following docs for support:
         ###     Matrix product: https://pytorch.org/docs/stable/torch.html#torch.matmul
         ###     ReLU: https://pytorch.org/docs/stable/nn.html?highlight=relu#torch.nn.functional.relu
-
-
+        x = self.embedding_lookup(w)
+        wdrop = self.dropout(self.embed_to_hidden_weight)
+        z = x @ wdrop.t() + self.embed_to_hidden_bias
+        h = nn.functional.relu(z)
+        logits = h @ self.hidden_to_logits_weight.t() + self.hidden_to_logits_bias
         ### END YOUR CODE
         return logits
 
